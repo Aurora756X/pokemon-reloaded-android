@@ -1,0 +1,42 @@
+name: Compilar OpenGMK desde Klisee
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout del código
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Instalar Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: i686-pc-windows-msvc
+
+    - name: Compilar el emulador (64 bits)
+      working-directory: src/OpenGMK
+      run: cargo build --release -p gm8emulator
+
+    - name: Compilar el servidor WoW64
+      working-directory: src/OpenGMK/gm8emulator-wow64
+      run: cargo build --release --target=i686-pc-windows-msvc
+
+    - name: Preparar carpeta dist
+      run: |
+        mkdir dist
+        copy src\OpenGMK\target\release\gm8emulator.exe dist\
+        copy src\OpenGMK\gm8emulator-wow64\target\i686-pc-windows-msvc\release\*.exe dist\
+      shell: cmd
+
+    - name: Subir artefacto
+      uses: actions/upload-artifact@v4
+      with:
+        name: gm8emulator-klisee-windows
+        path: dist/
